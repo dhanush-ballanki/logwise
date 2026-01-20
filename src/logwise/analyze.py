@@ -1,7 +1,7 @@
 import os
 import json
 from .rules import apply_rules
-from .ai import ai_analyze_error
+from .ai import ai_analyze_err
 
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../logs')
 
@@ -18,7 +18,7 @@ def analyze_log_in_memory(log: dict, use_ai: bool = False) -> dict:
     }
     
     if use_ai or not issues:  # Use AI if requested or no rules matched
-        ai_result = ai_analyze_error(log['command'], log['stderr'], log['exit_code'])
+        ai_result = ai_analyze_err(log['command'], log['stderr'], log['exit_code'])
         if 'error' not in ai_result:
             result['ai_analysis'] = ai_result
             if not issues:
