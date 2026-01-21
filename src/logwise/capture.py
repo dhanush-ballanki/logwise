@@ -36,7 +36,7 @@ def capture_and_run(command: str, use_ai: bool = False) -> None:
             print(result.stderr)
             print("\nAnalysis:")
             print(analysis['summary'])
-            for issue in analysis['issues']:
+            for issue in analysis.get('issues', []):
                 print(f"- Reason: {issue['description']} ({issue['root_cause']})")
                 print(f"  Steps to fix: {issue['fixes']}")
             if 'ai_analysis' in analysis:

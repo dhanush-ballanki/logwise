@@ -8,23 +8,41 @@ LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../logs')
 def analyze_log_in_memory(log: dict, use_ai: bool = False) -> dict:
     """
     Analyze log dict directly.
+    If use_ai=True → AI-only analysis (rules skipped)
     """
-    issues = apply_rules(log)
-    
-    result = {
-        'log': log,
-        'issues': issues,
-        'summary': f"Found {len(issues)} issues." if issues else "No issues detected."
-    }
-    
-    if use_ai or not issues:  # Use AI if requested or no rules matched
-        ai_result = ai_analyze_err(log['command'], log['stderr'], log['exit_code'])
+    result = {'log': log}
+
+    # --- AI MODE (explicit override) ---
+    if use_ai:
+        ai_result = ai_analyze_err(
+            log['command'],
+            log['stderr'],
+            log['exit_code']
+        )
+        result['summary'] = "AI-based analysis requested."
         if 'error' not in ai_result:
             result['ai_analysis'] = ai_result
-            if not issues:
-                result['summary'] = "No rule-based issues, but AI analysis provided."
-    
+        return result
+
+    # --- DEFAULT MODE (rules first, AI fallback) ---
+    issues = apply_rules(log)
+    result['issues'] = issues
+
+    if issues:
+        result['summary'] = f"Found {len(issues)} rule-based issue(s)."
+        return result
+
+    ai_result = ai_analyze_err(
+        log['command'],
+        log['stderr'],
+        log['exit_code']
+    )
+    result['summary'] = "No rule-based issues. AI fallback used."
+    if 'error' not in ai_result:
+        result['ai_analysis'] = ai_result
+
     return result
+
 
 def analyze_log(log_file: str, use_ai: bool = False) -> dict:
     full_path = os.path.join(LOG_DIR, log_file)
