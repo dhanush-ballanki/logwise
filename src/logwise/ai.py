@@ -62,8 +62,7 @@ def _extract_sse_content(body: str) -> str:
     return "".join(parts).strip()
 
 
-def _post_chat_completions(base_url: str, api_key: str | None,
-                           model: str, prompt: str) -> str:
+def _post_chat_completions(base_url: str, api_key: str | None, model: str, prompt: str) -> str:
     """POST one chat-completions request, return the assistant text."""
     body = {
         "model": model,
@@ -92,8 +91,7 @@ def _post_chat_completions(base_url: str, api_key: str | None,
     if "text/event-stream" in content_type:
         text = _extract_sse_content(raw)
         if not text:
-            raise RuntimeError(
-                f"Empty SSE stream from {base_url}. Preview: {raw[:300]}")
+            raise RuntimeError(f"Empty SSE stream from {base_url}. Preview: {raw[:300]}")
         return text
     try:
         payload = json.loads(raw)
@@ -101,7 +99,8 @@ def _post_chat_completions(base_url: str, api_key: str | None,
         raise RuntimeError(
             f"Non-JSON response from {base_url} "
             f"(content-type: {content_type or 'unknown'}). "
-            f"Preview: {raw[:300]}")
+            f"Preview: {raw[:300]}"
+        )
     try:
         return payload["choices"][0]["message"]["content"].strip()
     except (KeyError, IndexError, AttributeError):
@@ -110,8 +109,15 @@ def _post_chat_completions(base_url: str, api_key: str | None,
 
 #: Line markers (case-insensitive, markdown-bold tolerant) that start
 #: the fixes section of a model response.
-_FIXES_MARKERS = ("step-by-step", "steps to fix", "fix steps", "how to fix",
-                  "fixes:", "solution:", "resolution:")
+_FIXES_MARKERS = (
+    "step-by-step",
+    "steps to fix",
+    "fix steps",
+    "how to fix",
+    "fixes:",
+    "solution:",
+    "resolution:",
+)
 
 
 def _split_reason_fixes(analysis: str) -> tuple[str, str]:
@@ -128,10 +134,10 @@ def _split_reason_fixes(analysis: str) -> tuple[str, str]:
         if not any(clean.startswith(m) for m in _FIXES_MARKERS):
             continue
         reason = "\n".join(lines[:i])
-        for label in ("a simple human-readable reason for the error:",
-                      "reason:"):
-            if reason.lower().lstrip().startswith(label):
-                reason = reason.lstrip()[len(label):]
+        for label in ("a simple human-readable reason for the error:", "reason:"):
+            bare = reason.lstrip().lstrip("*")
+            if bare.lower().startswith(label):
+                reason = bare[len(label) :].lstrip("*").strip()
                 break
         fix_lines = lines[i:]
         if fix_lines[0].strip().strip("*").strip().endswith(":"):
@@ -141,9 +147,9 @@ def _split_reason_fixes(analysis: str) -> tuple[str, str]:
     return analysis.strip(), "No fixes suggested."
 
 
-def ai_analyze_err(command: str, stderr: str, exit_code: int,
-                   provider: str | None = None,
-                   model: str | None = None) -> dict:
+def ai_analyze_err(
+    command: str, stderr: str, exit_code: int, provider: str | None = None, model: str | None = None
+) -> dict:
     """
     Analyze an error with the selected provider (default: gemini).
 
@@ -160,11 +166,11 @@ def ai_analyze_err(command: str, stderr: str, exit_code: int,
     base_url = resolve_base_url(config)
     api_key = resolve_api_key(canonical, config)
 
-    if config["key_env"] is not None and not api_key and "localhost" not in base_url and "127.0.0.1" not in base_url:
+    keyless_local = "localhost" in base_url or "127.0.0.1" in base_url
+    if config["key_env"] is not None and not api_key and not keyless_local:
         return {"error": f"No API key for provider '{canonical}'. {key_hint(canonical, config)}."}
 
-    prompt = _PROMPT_TEMPLATE.format(
-        command=command, exit_code=exit_code, stderr=stderr)
+    prompt = _PROMPT_TEMPLATE.format(command=command, exit_code=exit_code, stderr=stderr)
     try:
         analysis = _post_chat_completions(base_url, api_key, use_model, prompt)
     except Exception as e:

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "logwise"
-version = "0.1.0"
+version = "0.2.0"
 description = "Intelligent Log Analyzer CLI Tool"
 readme = "README.md"
 license = "MIT"
@@ -42,3 +42,15 @@ where = ["src"]
 
 [tool.uv]
 package = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.8",
+]

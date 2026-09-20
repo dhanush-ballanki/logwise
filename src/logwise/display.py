@@ -12,6 +12,8 @@ Success-path stdout never touches this module — it stays a plain print.
 """
 
 import os
+import sys
+from contextlib import nullcontext
 
 import typer
 from rich.console import Console
@@ -20,6 +22,21 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+
+#: Accent color per AI provider (AI panel, spinner). Unknown → magenta.
+PROVIDER_THEMES = {
+    "gemini": "blue",
+    "openai": "green",
+    "deepseek": "violet",
+    "groq": "orange1",
+    "openrouter": "cyan",
+    "ollama": "grey62",
+}
+
+
+def provider_color(name: str | None) -> str:
+    """Accent color for a provider name (case-insensitive)."""
+    return PROVIDER_THEMES.get((name or "").strip().lower(), "magenta")
 
 
 def get_console(no_color: bool = False) -> Console:
@@ -34,14 +51,63 @@ def use_rich(console: Console) -> bool:
     return bool(console.is_terminal) and not console.no_color
 
 
+def interactive(console: Console) -> bool:
+    """True when safe to prompt: terminal output AND tty stdin."""
+    try:
+        stdin_tty = sys.stdin.isatty()
+    except Exception:
+        stdin_tty = False
+    return bool(console.is_terminal) and stdin_tty
+
+
+def ai_progress(console: Console, provider: str | None, model: str | None, plain: bool):
+    """Spinner shown while waiting on an AI provider (no-op when plain).
+
+    Usage: `with ai_progress(console, provider, model, plain): ...`
+    """
+    if plain:
+        return nullcontext()
+    accent = provider_color(provider)
+    label = escape(f"{provider or 'ai'} / {model or '?'}")
+    return console.status(f"[{accent}]Consulting {label}…[/]", spinner="dots")
+
+
+def prompt_retry(console: Console) -> bool:
+    """Ask whether to re-run the failed command (False when non-interactive)."""
+    if not interactive(console):
+        return False
+    try:
+        return typer.confirm("Retry command?", default=False)
+    except Exception:
+        return False
+
+
+def prompt_ai(console: Console) -> bool:
+    """Offer AI analysis after a non-AI failure (False when non-interactive)."""
+    if not interactive(console):
+        return False
+    try:
+        return typer.confirm("Analyze with AI?", default=False)
+    except Exception:
+        return False
+
+
+def prompt_rerun(console: Console) -> bool:
+    """Offer to re-run a logged command from `analyze`."""
+    if not interactive(console):
+        return False
+    try:
+        return typer.confirm("Re-run the logged command?", default=False)
+    except Exception:
+        return False
+
+
 def error_header(console: Console, exit_code: int, plain: bool) -> None:
     """`Error occurred (exit code: N)` — loud in rich, legacy text in plain."""
     if plain:
         typer.echo(f"Error occurred (exit code: {exit_code})")
     else:
-        console.print(
-            f"[bold red]:x: Error occurred[/] [red](exit code: {exit_code})[/]"
-        )
+        console.print(f"[bold red]:x: Error occurred[/] [red](exit code: {exit_code})[/]")
 
 
 def stderr_block(console: Console, stderr: str, plain: bool) -> None:
@@ -59,10 +125,16 @@ def stderr_block(console: Console, stderr: str, plain: bool) -> None:
         )
 
 
-def analysis(console: Console, summary: str, issues: list,
-             ai_analysis: dict | None, plain: bool, *,
-             show_summary: bool = True,
-             ai_label: str = "AI Enhanced Analysis:") -> None:
+def analysis(
+    console: Console,
+    summary: str,
+    issues: list,
+    ai_analysis: dict | None,
+    plain: bool,
+    *,
+    show_summary: bool = True,
+    ai_label: str = "AI Enhanced Analysis:",
+) -> None:
     """Summary line + rule issues + optional AI panel.
 
     `show_summary=False` skips the summary (for callers that already
@@ -93,12 +165,13 @@ def analysis(console: Console, summary: str, issues: list,
     if ai_analysis:
         provider = escape(str(ai_analysis.get("provider", "?")))
         model = escape(str(ai_analysis.get("model", "?")))
+        accent = provider_color(ai_analysis.get("provider"))
         console.print(
             Panel(
                 Markdown(f"{ai_analysis['reason']}\n\n{ai_analysis['fixes']}"),
-                title="[bold magenta]:sparkles: AI analysis[/]",
+                title=f"[bold {accent}]:sparkles: AI analysis[/]",
                 subtitle=f"[dim]{provider} / {model}[/]",
-                border_style="magenta",
+                border_style=accent,
             )
         )
 

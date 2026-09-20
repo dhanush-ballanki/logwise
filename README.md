@@ -17,10 +17,14 @@ When a command fails, the usual workflow is: rerun it, squint at the output, gue
 
 - `run` — execute a command; print stdout on success, log + analyze on failure
 - `analyze` — re-analyze any saved log file
-- `list` — list saved logs
+- `list` — list saved logs as a table (file, command, exit code)
+- `prune` — delete old logs by count (`--keep`) and/or age (`--older-than`), asks first unless `--yes`
+- Interactive retry / AI-offer / rerun prompts on terminals (off when piped; `--no-prompt` / `LOGWISE_NO_PROMPT`)
 - Rule engine with extensible `ERROR_RULES`
-- Multi-provider AI analysis over OpenAI-compatible APIs (stdlib `urllib` only, zero vendor SDKs)
+- Multi-provider AI analysis over OpenAI-compatible APIs (stdlib `urllib` only, zero vendor SDKs), with spinner + per-provider accent colors
+- Rich terminal output with byte-identical plain fallback for pipes (`--no-color`, `NO_COLOR`, `LOGWISE_NO_COLOR`)
 - `uv`-managed project: locked deps, reproducible builds
+- stdlib `unittest` suite (`tests/`), Ruff lint + format, CI workflow
 
 ## Requirements
 
@@ -83,6 +87,13 @@ logwise analyze log_2025-04-06T10-30-00.json --ai --provider groq
 logwise list
 ```
 
+### Prune old logs
+
+```bash
+logwise prune --keep 50              # keep newest 50, preview + confirm
+logwise prune --keep 20 --older-than 30 --yes   # ...older than 30 days, no prompt
+```
+
 ### Example
 
 ```bash
@@ -104,9 +115,11 @@ Found 2 rule-based issue(s).
 
 ## Output & colors
 
-On a real terminal, failures render with Rich: a red `❌ Error` header, stderr in a red panel, yellow `⚠` issue rows with green `→` fixes, and AI advice as a Markdown panel captioned with `provider / model`. `list` renders a table (file, command, exit code).
+On a real terminal, failures render with Rich: a red `❌ Error` header, stderr in a red panel, yellow `⚠` issue rows with green `→` fixes, and AI advice as a Markdown panel captioned with `provider / model` in that provider's accent color (blue Gemini, green OpenAI, violet DeepSeek, orange Groq, cyan OpenRouter, grey Ollama). `list` renders a table (file, command, exit code).
 
 Plain text is automatic when output is piped or redirected, and can be forced with `--no-color`, `NO_COLOR=1`, or `LOGWISE_NO_COLOR=1`. Successful command stdout is never styled — it stays byte-identical so pipes and scripts keep working.
+
+On terminals, `run` offers to retry a failed command (and to analyze with AI if you didn't pass `--ai`), and `analyze` offers to re-run the logged command. Prompts never appear when piped; `--no-prompt` / `LOGWISE_NO_PROMPT=1` disables them.
 
 ## Architecture
 
@@ -322,6 +335,7 @@ File beats nothing: exported variables always win over `.env` values.
 
 ```text
 logwise/
+├── .github/workflows/      # CI: ruff + unittest + build
 ├── AGENTS.md
 ├── LICENSE
 ├── README.md
@@ -331,15 +345,16 @@ logwise/
 ├── src/
 │   └── logwise/
 │       ├── ai.py           # SDK-free chat-completions client
-│       ├── analyze.py      # analysis orchestrator
+│       ├── analyze.py      # analysis orchestrator + prune_logs()
 │       ├── capture.py      # subprocess runner + log writer
 │       ├── display.py      # Rich terminal rendering (only color-aware module)
 │       ├── env.py          # stdlib .env loader (no extra dependency)
-│       ├── main.py         # Typer CLI (run | analyze | list)
+│       ├── main.py         # Typer CLI (run | analyze | list | prune)
 │       ├── paths.py        # runtime data dirs (cwd-based, install-safe)
 │       ├── providers.py    # provider registry
 │       └── rules.py        # ERROR_RULES
-├── logs/                   # created automatically when commands fail (cwd-based; override with LOGWISE_LOG_DIR)
+├── tests/                  # stdlib unittest suite (69 tests)
+├── logs/                   # auto-created at startup (cwd-based; override with LOGWISE_LOG_DIR)
 ├── dist/                   # uv build output (git-ignored)
 └── .venv/                  # uv venv (git-ignored)
 ```
@@ -347,18 +362,22 @@ logwise/
 ## Development
 
 ```bash
-uv sync                  # install / refresh .venv from uv.lock
+uv sync --group dev        # install dev tools (ruff)
+uv run python -m unittest discover   # 69 tests, stdlib only
+uv run --group dev ruff check src tests
+uv run --group dev ruff format --check src tests
 uv run logwise run "ls /missing/path"   # rules path
 uv run logwise run "echo hi"            # success path
 uv run logwise list
+uv run logwise prune --keep 50 --yes    # rotate old logs
 uv build                 # wheel + sdist into dist/
 ```
 
-There is no test suite, linter, or CI yet — verify manually with a passing and a failing command as above. To exercise the AI layer without spending API calls, point `LOGWISE_BASE_URL` at any stub that answers `POST /chat/completions` with `{"choices": [{"message": {"content": "..."}}]}`.
+CI (`.github/workflows/ci.yml`) runs ruff, the test suite, and `uv build` on every push to `main` and every PR. To exercise the AI layer without spending API calls, point `LOGWISE_BASE_URL` at any stub that answers `POST /chat/completions` with `{"choices": [{"message": {"content": "..."}}]}`.
 
 ## Publishing to PyPI
 
-The package is publish-ready: SPDX license, readme, classifiers, project URLs, `src` layout, and a single runtime dependency (`typer`).
+The package is publish-ready: SPDX license, readme, classifiers, project URLs, `src` layout, and two runtime dependencies (`typer`, `rich`).
 
 ```bash
 uv build               # wheel + sdist into dist/

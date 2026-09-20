@@ -73,8 +73,10 @@ def load_dotenv(path: Path | str | None = None) -> Path | None:
         if override:
             explicit = Path(override).expanduser()
             if not explicit.is_file():
-                print(f"logwise: {ENV_FILE_OVERRIDE_VAR}={override} not found, skipping.",
-                      file=sys.stderr)
+                print(
+                    f"logwise: {ENV_FILE_OVERRIDE_VAR}={override} not found, skipping.",
+                    file=sys.stderr,
+                )
                 return None
             path = explicit
         else:

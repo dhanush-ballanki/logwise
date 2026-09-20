@@ -18,3 +18,17 @@ def get_log_dir() -> Path:
     if override:
         return Path(override).expanduser()
     return Path.cwd() / "logs"
+
+
+def ensure_log_dir() -> Path:
+    """Best-effort creation of the log dir (never raises).
+
+    Called once at CLI startup so `list` works before any failure.
+    Read-only locations are silently ignored — commands cope already.
+    """
+    log_dir = get_log_dir()
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+    return log_dir
