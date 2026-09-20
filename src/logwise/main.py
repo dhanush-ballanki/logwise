@@ -31,7 +31,7 @@ app = typer.Typer(help="LogWise: Intelligent Log Analyzer")
 
 _PROVIDER_HELP = f"AI provider ({', '.join(sorted(PROVIDERS))}). Env: LOGWISE_PROVIDER."
 _NO_COLOR_HELP = "Disable colored output. Env: LOGWISE_NO_COLOR."
-_NO_PROMPT_HELP = "Never prompt (retry / AI offer). Env: LOGWISE_NO_PROMPT."
+_NO_PROMPT_HELP = "Never prompt (retry / edit / AI offer / rerun). Env: LOGWISE_NO_PROMPT."
 
 
 def _prompts_enabled(no_prompt: bool) -> bool:
@@ -54,9 +54,14 @@ def run(
     )
     if log_name is None or not _prompts_enabled(no_prompt):
         return
+    current = command
     while display.prompt_retry(console):
+        edited = display.prompt_edit_command(console, current)
+        if edited is None:
+            break
+        current = edited
         log_name = capture_and_run(
-            command, use_ai=ai, provider=provider, model=model, no_color=no_color
+            current, use_ai=ai, provider=provider, model=model, no_color=no_color
         )
         if log_name is None:
             return
@@ -119,9 +124,15 @@ def analyze(
         and result["log"].get("command")
         and display.prompt_rerun(console)
     ):
-        capture_and_run(
-            result["log"]["command"], use_ai=ai, provider=provider, model=model, no_color=no_color
-        )
+        edited = display.prompt_edit_command(console, result["log"]["command"])
+        if edited is not None:
+            capture_and_run(
+                edited,
+                use_ai=ai,
+                provider=provider,
+                model=model,
+                no_color=no_color,
+            )
 
 
 @app.command()

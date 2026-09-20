@@ -19,7 +19,7 @@ When a command fails, the usual workflow is: rerun it, squint at the output, gue
 - `analyze` — re-analyze any saved log file
 - `list` — list saved logs as a table (file, command, exit code)
 - `prune` — delete old logs by count (`--keep`) and/or age (`--older-than`), asks first unless `--yes`
-- Interactive retry / AI-offer / rerun prompts on terminals (off when piped; `--no-prompt` / `LOGWISE_NO_PROMPT`)
+- Interactive retry (with command editing) / AI-offer / rerun prompts on terminals (off when piped; `--no-prompt` / `LOGWISE_NO_PROMPT`)
 - Rule engine with extensible `ERROR_RULES`
 - Multi-provider AI analysis over OpenAI-compatible APIs (stdlib `urllib` only, zero vendor SDKs), with spinner + per-provider accent colors
 - Rich terminal output with byte-identical plain fallback for pipes (`--no-color`, `NO_COLOR`, `LOGWISE_NO_COLOR`)
@@ -119,7 +119,7 @@ On a real terminal, failures render with Rich: a red `❌ Error` header, stderr 
 
 Plain text is automatic when output is piped or redirected, and can be forced with `--no-color`, `NO_COLOR=1`, or `LOGWISE_NO_COLOR=1`. Successful command stdout is never styled — it stays byte-identical so pipes and scripts keep working.
 
-On terminals, `run` offers to retry a failed command (and to analyze with AI if you didn't pass `--ai`), and `analyze` offers to re-run the logged command. Prompts never appear when piped; `--no-prompt` / `LOGWISE_NO_PROMPT=1` disables them.
+On terminals, `run` offers to retry a failed command — with a chance to edit it first (typos welcome), looping until it succeeds or you decline — and then offers AI analysis if you didn't pass `--ai`. `analyze` offers to re-run (and edit) the logged command. Prompts never appear when piped; `--no-prompt` / `LOGWISE_NO_PROMPT=1` disables them.
 
 ## Architecture
 
@@ -353,7 +353,7 @@ logwise/
 │       ├── paths.py        # runtime data dirs (cwd-based, install-safe)
 │       ├── providers.py    # provider registry
 │       └── rules.py        # ERROR_RULES
-├── tests/                  # stdlib unittest suite (69 tests)
+├── tests/                  # stdlib unittest suite (71 tests)
 ├── logs/                   # auto-created at startup (cwd-based; override with LOGWISE_LOG_DIR)
 ├── dist/                   # uv build output (git-ignored)
 └── .venv/                  # uv venv (git-ignored)
@@ -363,7 +363,7 @@ logwise/
 
 ```bash
 uv sync --group dev        # install dev tools (ruff)
-uv run python -m unittest discover   # 69 tests, stdlib only
+uv run python -m unittest discover   # 71 tests, stdlib only
 uv run --group dev ruff check src tests
 uv run --group dev ruff format --check src tests
 uv run logwise run "ls /missing/path"   # rules path

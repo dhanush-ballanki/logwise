@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from rich.console import Console
 
@@ -36,6 +37,7 @@ class TestProgressAndPrompts(unittest.TestCase):
         self.assertFalse(display.prompt_retry(c))
         self.assertFalse(display.prompt_ai(c))
         self.assertFalse(display.prompt_rerun(c))
+        self.assertIsNone(display.prompt_edit_command(c, "echo hi"))
 
 
 class TestEnsureLogDir(unittest.TestCase):
@@ -64,6 +66,34 @@ class TestCaptureReturn(unittest.TestCase):
         name = capture_and_run("exit 3", no_color=True)
         self.assertTrue(name.startswith("log_") and name.endswith(".json"))
         self.assertTrue((Path(self.tmp.name) / name).exists())
+
+
+class TestRetryEditFlow(unittest.TestCase):
+    def run_with(self, retry_answers, edit_answer):
+        import logwise.main as mainmod
+
+        calls = []
+
+        def fake_capture(cmd, **kwargs):
+            calls.append(cmd)
+            return "log_x.json" if len(calls) < 2 else None
+
+        with (
+            mock.patch.object(mainmod, "capture_and_run", side_effect=fake_capture),
+            mock.patch.object(display, "prompt_retry", side_effect=retry_answers),
+            mock.patch.object(display, "prompt_edit_command", return_value=edit_answer),
+        ):
+            mainmod.run("echo broken", no_color=True, no_prompt=False)
+        return calls
+
+    def test_retry_runs_edited_command(self):
+        self.assertEqual(
+            self.run_with([True, False], "echo fixed"),
+            ["echo broken", "echo fixed"],
+        )
+
+    def test_edit_abort_stops_loop(self):
+        self.assertEqual(self.run_with([True], None), ["echo broken"])
 
 
 if __name__ == "__main__":

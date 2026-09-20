@@ -10,7 +10,7 @@ Tiny Typer CLI (Python >=3.10) that runs a shell command, saves failures as JSON
 - `src/logwise/rules.py` — `ERROR_RULES` + `apply_rules()`. Add new rules as dicts with `id/condition/description/root_cause/fixes`.
 - `src/logwise/ai.py` — `ai_analyze_err()` over OpenAI-compatible `POST {base_url}/chat/completions` via stdlib `urllib` only. **No vendor SDKs** (google-genai removed).
 - `src/logwise/providers.py` — `PROVIDERS` table `{base_url, key_env, default_model}` + `resolve_*()` (flag → `LOGWISE_*` env → default). New vendors are data-only entries.
-- `src/logwise/display.py` — the ONLY color-aware module. Rich renderers + byte-identical plain fallbacks. All dynamic text is `escape()`d (model output with `[brackets]` must never parse as markup). Success stdout never goes through here. Also owns `PROVIDER_THEMES`, `ai_progress()` spinner, and `prompt_*()` gates (all False when non-interactive; `--no-prompt` / `LOGWISE_NO_PROMPT` disables).
+- `src/logwise/display.py` — the ONLY color-aware module. Rich renderers + byte-identical plain fallbacks. All dynamic text is `escape()`d (model output with `[brackets]` must never parse as markup). Success stdout never goes through here. Also owns `PROVIDER_THEMES`, `ai_progress()` spinner, and `prompt_*()` gates (all False when non-interactive; `--no-prompt` / `LOGWISE_NO_PROMPT` disables; `prompt_edit_command()` returns edited cmd or None on abort).
 - `src/logwise/env.py` — stdlib `.env` loader (`load_dotenv()`; `LOGWISE_ENV_FILE` or nearest `.env` upward from cwd; real env always wins). Called once in `main.py`.
 - `src/logwise/paths.py` — `get_log_dir()` (`LOGWISE_LOG_DIR` or `cwd/logs`). Never write runtime data relative to `__file__` (breaks pip installs).
 - `src/logwise/` has **no `__init__.py`** (namespace package). Do not add one unless packaging requires it.
@@ -19,7 +19,7 @@ Tiny Typer CLI (Python >=3.10) that runs a shell command, saves failures as JSON
 
 ```bash
 uv sync --group dev        # .venv + locked deps + ruff
-uv run python -m unittest discover   # 69 tests, stdlib only (run from repo root)
+uv run python -m unittest discover   # 71 tests, stdlib only (run from repo root)
 uv run --group dev ruff check src tests
 uv run --group dev ruff format --check src tests
 uv run logwise run "ls /missing/path"

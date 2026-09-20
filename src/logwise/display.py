@@ -102,6 +102,22 @@ def prompt_rerun(console: Console) -> bool:
         return False
 
 
+def prompt_edit_command(console: Console, current: str) -> str | None:
+    """Let the user edit a command before re-running it.
+
+    Returns the (possibly unchanged) command, or None if the user aborts
+    or prompts are unavailable. Enter keeps `current` (typer default).
+    """
+    if not interactive(console):
+        return None
+    try:
+        return typer.prompt("Edit command", default=current)
+    except KeyboardInterrupt:
+        return None
+    except Exception:
+        return None
+
+
 def error_header(console: Console, exit_code: int, plain: bool) -> None:
     """`Error occurred (exit code: N)` — loud in rich, legacy text in plain."""
     if plain:
