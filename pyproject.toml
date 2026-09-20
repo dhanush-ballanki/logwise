@@ -9,10 +9,29 @@ description = "Intelligent Log Analyzer CLI Tool"
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Dhanush Ballanki", email = "dhanushballanki14@gmail.com" }]
+keywords = ["cli", "logs", "debugging", "devtools", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: System :: Logging",
+    "Typing :: Typed",
+]
 requires-python = ">=3.10"
 dependencies = [
     "typer==0.21.1",
 ]
+
+[project.urls]
+Homepage = "https://github.com/dhanush-ballanki/logwise"
+Repository = "https://github.com/dhanush-ballanki/logwise"
+Issues = "https://github.com/dhanush-ballanki/logwise/issues"
 
 [project.scripts]
 logwise = "logwise.main:app"

@@ -1,8 +1,7 @@
 import os
 import json
 from .rules import apply_rules
-
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../logs')
+from .paths import get_log_dir
 
 def analyze_log_in_memory(log: dict, use_ai: bool = False,
                           provider: str | None = None,
@@ -58,7 +57,7 @@ def analyze_log_in_memory(log: dict, use_ai: bool = False,
 def analyze_log(log_file: str, use_ai: bool = False,
                 provider: str | None = None,
                 model: str | None = None) -> dict:
-    full_path = os.path.join(LOG_DIR, log_file)
+    full_path = os.path.join(get_log_dir(), log_file)
     if not os.path.exists(full_path):
         return {'error': 'Log file not found.'}
 
@@ -69,6 +68,7 @@ def analyze_log(log_file: str, use_ai: bool = False,
                                  provider=provider, model=model)
 
 def list_logs() -> list:
-    if not os.path.isdir(LOG_DIR):
+    log_dir = get_log_dir()
+    if not os.path.isdir(log_dir):
         return []
-    return [f for f in os.listdir(LOG_DIR) if f.endswith('.json')]
+    return [f for f in os.listdir(log_dir) if f.endswith('.json')]

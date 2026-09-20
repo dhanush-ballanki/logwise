@@ -3,9 +3,7 @@ import os
 import datetime
 import json
 from .analyze import analyze_log_in_memory
-
-
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../logs')
+from .paths import get_log_dir
 
 def capture_and_run(command: str, use_ai: bool = False,
                     provider: str | None = None,
@@ -27,8 +25,9 @@ def capture_and_run(command: str, use_ai: bool = False,
         if result.returncode == 0 and not result.stderr:
             print(result.stdout)
         else:
-            os.makedirs(LOG_DIR, exist_ok=True)
-            log_file = os.path.join(LOG_DIR, f"log_{start_time.replace(':','-')}.json")
+            log_dir = get_log_dir()
+            os.makedirs(log_dir, exist_ok=True)
+            log_file = os.path.join(log_dir, f"log_{start_time.replace(':','-')}.json")
             with open(log_file, 'w') as f:
                 json.dump(log_entry, f, indent=4)
             # Analyze in memory

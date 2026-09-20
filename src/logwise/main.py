@@ -1,7 +1,10 @@
 import typer
+from .env import load_dotenv
 from .capture import capture_and_run
 from .analyze import analyze_log,list_logs
 from .providers import PROVIDERS
+
+load_dotenv()  # .env / LOGWISE_ENV_FILE, before any resolve_*() runs
 
 app = typer.Typer(help="LogWise: Intelligent Log Analyzer")
 

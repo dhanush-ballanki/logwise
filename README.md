@@ -49,7 +49,7 @@ Build distributables (wheel + sdist into `dist/`):
 uv build
 ```
 
-Legacy pip setup still works, but `pyproject.toml` + `uv.lock` is canonical:
+Prefer plain pip? `pyproject.toml` is standards-based, so this works too:
 
 ```bash
 python -m venv .venv
@@ -292,7 +292,9 @@ logwise analyze log_....json --ai --provider groq
 ollama serve & logwise run "python script.py" --ai --provider ollama
 ```
 
-Generic overrides for any OpenAI-compatible server: `LOGWISE_API_KEY`, `LOGWISE_MODEL`, `LOGWISE_BASE_URL`. There is no `.env` loader — export variables in your shell.
+Generic overrides for any OpenAI-compatible server: `LOGWISE_API_KEY`,
+`LOGWISE_MODEL`, `LOGWISE_BASE_URL`. All of these — plus the provider keys —
+can live in `.env` instead of exports (see [Installation](#installation)).
 
 ## Configuration reference
 
@@ -303,8 +305,11 @@ Generic overrides for any OpenAI-compatible server: `LOGWISE_API_KEY`, `LOGWISE_
 | `LOGWISE_BASE_URL` | Custom OpenAI-compatible endpoint | provider default |
 | `LOGWISE_API_KEY` | Generic key (beats provider-specific env) | — |
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` | Provider keys | — |
+| `LOGWISE_ENV_FILE` | Explicit `.env` path (skips upward search) | nearest `.env` from cwd upward |
+| `LOGWISE_LOG_DIR` | Where failure logs are stored | `logs/` under cwd |
 
 Flags beat env vars: `--provider` > `LOGWISE_PROVIDER`, `--model` > `LOGWISE_MODEL`.
+File beats nothing: exported variables always win over `.env` values.
 
 ## Project structure
 
@@ -313,20 +318,20 @@ logwise/
 ├── AGENTS.md
 ├── LICENSE
 ├── README.md
-├── pyproject.toml          # canonical deps + build config (setuptools, src layout)
-├── uv.lock                 # locked deps (commit this)
+├── pyproject.toml          # deps + build config (setuptools, src layout)
+├── uv.lock                 # locked deps (committed)
 ├── .python-version         # pins 3.12
-├── requirements.txt        # legacy — don't add new deps here
-├── Pipfile / Pipfile.lock  # legacy — don't add new deps here
 ├── src/
 │   └── logwise/
 │       ├── ai.py           # SDK-free chat-completions client
 │       ├── analyze.py      # analysis orchestrator
 │       ├── capture.py      # subprocess runner + log writer
+│       ├── env.py          # stdlib .env loader (no extra dependency)
 │       ├── main.py         # Typer CLI (run | analyze | list)
+│       ├── paths.py        # runtime data dirs (cwd-based, install-safe)
 │       ├── providers.py    # provider registry
 │       └── rules.py        # ERROR_RULES
-├── logs/                   # created automatically when commands fail
+├── logs/                   # created automatically when commands fail (cwd-based; override with LOGWISE_LOG_DIR)
 ├── dist/                   # uv build output (git-ignored)
 └── .venv/                  # uv venv (git-ignored)
 ```
@@ -342,6 +347,22 @@ uv build                 # wheel + sdist into dist/
 ```
 
 There is no test suite, linter, or CI yet — verify manually with a passing and a failing command as above. To exercise the AI layer without spending API calls, point `LOGWISE_BASE_URL` at any stub that answers `POST /chat/completions` with `{"choices": [{"message": {"content": "..."}}]}`.
+
+## Publishing to PyPI
+
+The package is publish-ready: SPDX license, readme, classifiers, project URLs, `src` layout, and a single runtime dependency (`typer`).
+
+```bash
+uv build               # wheel + sdist into dist/
+uv publish             # needs a PyPI token (or: twine upload dist/*)
+```
+
+Checklist before the first upload:
+
+1. `uv build` succeeds with no warnings.
+2. Bump `version` in `pyproject.toml` for every subsequent release.
+3. Never commit `.env` (git-ignored) or `dist/` (git-ignored).
+4. `pip install logwise` in a fresh venv, then `logwise run "ls /missing"` from an unrelated directory — logs must land in that directory's `logs/`, never in `site-packages`.
 
 ## Contributing
 
