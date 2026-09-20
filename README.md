@@ -102,6 +102,12 @@ Found 2 rule-based issue(s).
   Steps to fix: Check if the file exists (ls), correct the path, or create the missing item.
 ```
 
+## Output & colors
+
+On a real terminal, failures render with Rich: a red `❌ Error` header, stderr in a red panel, yellow `⚠` issue rows with green `→` fixes, and AI advice as a Markdown panel captioned with `provider / model`. `list` renders a table (file, command, exit code).
+
+Plain text is automatic when output is piped or redirected, and can be forced with `--no-color`, `NO_COLOR=1`, or `LOGWISE_NO_COLOR=1`. Successful command stdout is never styled — it stays byte-identical so pipes and scripts keep working.
+
 ## Architecture
 
 ### System overview
@@ -307,6 +313,7 @@ can live in `.env` instead of exports (see [Installation](#installation)).
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `DEEPSEEK_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` | Provider keys | — |
 | `LOGWISE_ENV_FILE` | Explicit `.env` path (skips upward search) | nearest `.env` from cwd upward |
 | `LOGWISE_LOG_DIR` | Where failure logs are stored | `logs/` under cwd |
+| `LOGWISE_NO_COLOR` / `NO_COLOR` | Force plain-text output | color when attached to a terminal |
 
 Flags beat env vars: `--provider` > `LOGWISE_PROVIDER`, `--model` > `LOGWISE_MODEL`.
 File beats nothing: exported variables always win over `.env` values.
@@ -326,6 +333,7 @@ logwise/
 │       ├── ai.py           # SDK-free chat-completions client
 │       ├── analyze.py      # analysis orchestrator
 │       ├── capture.py      # subprocess runner + log writer
+│       ├── display.py      # Rich terminal rendering (only color-aware module)
 │       ├── env.py          # stdlib .env loader (no extra dependency)
 │       ├── main.py         # Typer CLI (run | analyze | list)
 │       ├── paths.py        # runtime data dirs (cwd-based, install-safe)

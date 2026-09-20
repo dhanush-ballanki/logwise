@@ -3,11 +3,13 @@ import os
 import datetime
 import json
 from .analyze import analyze_log_in_memory
+from . import display
 from .paths import get_log_dir
 
 def capture_and_run(command: str, use_ai: bool = False,
                     provider: str | None = None,
-                    model: str | None = None) -> None:
+                    model: str | None = None,
+                    no_color: bool = False) -> None:
     """
         Run command, print output if no error else analyze the error
     """
@@ -33,18 +35,13 @@ def capture_and_run(command: str, use_ai: bool = False,
             # Analyze in memory
             analysis = analyze_log_in_memory(log_entry, use_ai=use_ai,
                                              provider=provider, model=model)
-            print(f"Error occurred (exit code: {result.returncode})")
-            print("Stderr captured:")
-            print(result.stderr)
-            print("\nAnalysis:")
-            print(analysis['summary'])
-            for issue in analysis.get('issues', []):
-                print(f"- Reason: {issue['description']} ({issue['root_cause']})")
-                print(f"  Steps to fix: {issue['fixes']}")
-            if 'ai_analysis' in analysis:
-                print("\nAI Enhanced Analysis:")
-                print(f"Reason: {analysis['ai_analysis']['reason']}")
-                print(f"Steps to fix: {analysis['ai_analysis']['fixes']}")
+            console = display.get_console(no_color=no_color)
+            plain = not display.use_rich(console)
+            display.error_header(console, result.returncode, plain)
+            display.stderr_block(console, result.stderr, plain)
+            display.analysis(console, analysis['summary'],
+                             analysis.get('issues', []),
+                             analysis.get('ai_analysis'), plain)
 
     except Exception as e:
         print('Execution failed: '+str(e))

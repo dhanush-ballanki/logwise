@@ -20,11 +20,15 @@ name = "logwise"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "rich" },
     { name = "typer" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "typer", specifier = "==0.21.1" }]
+requires-dist = [
+    { name = "rich", specifier = "==15.0.0" },
+    { name = "typer", specifier = "==0.21.1" },
+]
 
 [[package]]
 name = "markdown-it-py"
