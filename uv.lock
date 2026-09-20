@@ -16,7 +16,7 @@ wheels = [
 ]
 
 [[package]]
-name = "logwise"
+name = "logwise-cli"
 version = "0.2.0"
 source = { editable = "." }
 dependencies = [

@@ -389,7 +389,7 @@ Checklist before the first upload:
 1. `uv build` succeeds with no warnings.
 2. Bump `version` in `pyproject.toml` for every subsequent release.
 3. Never commit `.env` (git-ignored) or `dist/` (git-ignored).
-4. `pip install logwise` in a fresh venv, then `logwise run "ls /missing"` from an unrelated directory — logs must land in that directory's `logs/`, never in `site-packages`.
+4. `pip install logwise-cli` in a fresh venv, then `logwise run "ls /missing"` from an unrelated directory — logs must land in that directory's `logs/`, never in `site-packages`.
 
 ## Contributing
 
