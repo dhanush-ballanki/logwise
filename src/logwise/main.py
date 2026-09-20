@@ -1,33 +1,40 @@
 import typer
 from .capture import capture_and_run
 from .analyze import analyze_log,list_logs
+from .providers import PROVIDERS
 
 app = typer.Typer(help="LogWise: Intelligent Log Analyzer")
+
+_PROVIDER_HELP = f"AI provider ({', '.join(sorted(PROVIDERS))}). Env: LOGWISE_PROVIDER."
 
 @app.command()
 def run(
     command: str,
-    ai: bool = typer.Option(False, "--ai", help="Use AI enhanced analysis on errors")
+    ai: bool = typer.Option(False, "--ai", help="Use AI enhanced analysis on errors"),
+    provider: str = typer.Option(None, "--provider", help=_PROVIDER_HELP),
+    model: str = typer.Option(None, "--model", help="Model override. Env: LOGWISE_MODEL."),
 ):
     """ Run a command: Output normally on success, analyze errors with reasons/fixes """
-    capture_and_run(command, use_ai=ai)
+    capture_and_run(command, use_ai=ai, provider=provider, model=model)
 
 @app.command()
 def analyze(
     log_file: str = typer.Argument(..., help="Log file to analyze"),
     ai: bool = typer.Option( False, "--ai", help="Use AI for enchanced analysis"),
+    provider: str = typer.Option(None, "--provider", help=_PROVIDER_HELP),
+    model: str = typer.Option(None, "--model", help="Model override. Env: LOGWISE_MODEL."),
 ):
     """
         Analyze a captured log for errors
     """
-    result = analyze_log(log_file,use_ai=ai)
+    result = analyze_log(log_file,use_ai=ai,provider=provider,model=model)
     if 'error' in result:
         typer.echo(result['error'])
         return
-    
+
     typer.echo("Log Summary:")
     typer.echo(result['summary'])
-    for issue in result['issues']:
+    for issue in result.get('issues', []):
         typer.echo(f"- Reason: {issue['description']} ({issue['root_cause']})")
         typer.echo(f"  Steps to fix: {issue['fixes']}")
     if 'ai_analysis' in result:

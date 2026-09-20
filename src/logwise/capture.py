@@ -7,7 +7,9 @@ from .analyze import analyze_log_in_memory
 
 LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../logs')
 
-def capture_and_run(command: str, use_ai: bool = False) -> None:
+def capture_and_run(command: str, use_ai: bool = False,
+                    provider: str | None = None,
+                    model: str | None = None) -> None:
     """
         Run command, print output if no error else analyze the error
     """
@@ -30,7 +32,8 @@ def capture_and_run(command: str, use_ai: bool = False) -> None:
             with open(log_file, 'w') as f:
                 json.dump(log_entry, f, indent=4)
             # Analyze in memory
-            analysis = analyze_log_in_memory(log_entry, use_ai=use_ai)
+            analysis = analyze_log_in_memory(log_entry, use_ai=use_ai,
+                                             provider=provider, model=model)
             print(f"Error occurred (exit code: {result.returncode})")
             print("Stderr captured:")
             print(result.stderr)
